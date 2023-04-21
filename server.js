@@ -13,18 +13,6 @@ app.use(cors({optionSuccessStatus: 200}));  // some legacy browsers choke on 204
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
-// http://expressjs.com/en/starter/basic-routing.html
-app.get("/", function (req, res) {
-  res.sendFile(__dirname + '/views/index.html');
-});
-
-
-// your first API endpoint... 
-app.get("/api/hello", function (req, res) {
-  res.json({greeting: 'hello API'});
-});
-
-
 
 // listen for requests :)
 var listener = app.listen(process.env.PORT || 3000, function () {
@@ -32,43 +20,31 @@ var listener = app.listen(process.env.PORT || 3000, function () {
 });
 
 
-let responseObject = {}
-
-app.get('/api/timestamp/:input', (request, response) => {
-  let input = request.params.input
-  
-  if(input.includes('-')){
-    /* Date String */
-    responseObject['unix'] = new Date(input).getTime()
-    responseObject['utc'] = new Date(input).toUTCString()
-  }else{
-    /* Timestamp */
-    input = parseInt(input)
-    
-    responseObject['unix'] = new Date(input).getTime()
-    responseObject['utc'] = new Date(input).toUTCString()
+app.get('/api/:date?', (req, res) => {
+  const dateString = req.params.date
+  const dateStringRegex = /^[0-9]+$/
+  const numbersOnly = dateStringRegex.test(dateString)
+ 
+  if (!numbersOnly) {
+    const unixTimestamp = Date.parse(dateString)
+    const utcDate = new Date(unixTimestamp).toUTCString()
+ 
+    unixTimestamp
+    ? res.json({ unix: unixTimestamp, utc: utcDate })
+    : res.json({ error: "Invalid Date" })
+  } 
+  else {
+    const unixTimestamp = parseInt(dateString)
+    const actualDate = new Date(unixTimestamp)
+    const utcDate = actualDate.toUTCString()
+ 
+    res.json({ unix: unixTimestamp, utc: utcDate })
   }
-  
-  if(!responseObject['unix'] || !responseObject['utc']){
-    response.json({error: 'Invalid Date'})
-  }
-  
-  
-  response.json(responseObject)
-})
-
-app.get('/api/timestamp', (request, response) => {
-  responseObject['unix'] = new Date().getTime()
-  responseObject['utc'] = new Date().toUTCString()
-  
-  response.json(responseObject)
-})
-
-let bodyParser = require('body-parser')
-
-app.post('/api/timestampform', bodyParser.urlencoded({ extended: false }), (request, response) => {
-  let input = request.body.input
-  let getUrl = '/api/timestamp/' + input
-  
-  response.redirect(getUrl)
-})
+ 
+   app.get('/api', (req, res) => {
+     const currentDate = new Date().toUTCString()
+     const currentUnix = Date.parse(currentDate)
+     res.json({ unix: currentUnix, utc: currentDate })
+   })
+ })
+ 
